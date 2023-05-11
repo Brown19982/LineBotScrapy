@@ -1,0 +1,55 @@
+ public static File pdfMixWatermark(File inputFile, String readerPw, String stamperPw) throws Exception {
+        Path tempPath = Files.createTempFile(String.valueOf(System.currentTimeMillis()), ".pdf");
+
+        if (!Files.exists(tempPath.getParent())) {
+            Files.createDirectories(tempPath.getParent());
+        }
+
+        PdfReader reader;
+        if (StringUtils.isNotBlank(readerPw)) {
+            reader = new PdfReader(new FileInputStream(inputFile), readerPw.getBytes());
+        } else {
+            reader = new PdfReader(new FileInputStream(inputFile));
+        }
+        PdfStamper stamp = new PdfStamper(reader, new FileOutputStream(tempPath.toFile()));
+        PdfContentByte under;
+
+        // 輸出加密
+        if (StringUtils.isNotBlank(stamperPw)) {
+            stamp.setEncryption(stamperPw.getBytes(), stamperPw.getBytes(), PdfWriter.ALLOW_PRINTING,
+                    PdfWriter.STANDARD_ENCRYPTION_128);
+        }
+
+        PdfGState gs1 = new PdfGState();
+        // 設定透明度
+        // gs1.setFillOpacity(0.5f);
+
+        Path markImagePath = Paths.get("C://test/", "test.png");
+        // 選擇浮水印檔案
+        Image img = Image.getInstance(markImagePath.toUri().toURL());
+
+        // 圖片位置
+        img.setAbsolutePosition(163, -315);
+        // 旋轉: 弧度
+        // img.setRotation(-20);
+        // 旋轉: 角度
+        // img.setRotationDegrees(45);
+        // 自訂浮水印大小
+        // img.scaleAbsolute(888, 1149);
+        // 依照比例縮放
+        img.scalePercent(53);
+
+        int pageSize = reader.getNumberOfPages();
+        for (int i = 1; i <= pageSize; i++) {
+            // 浮水印在文字底下
+            // under = stamp.getUnderContent(i);
+            // 浮水印在文字上面
+            under = stamp.getOverContent(i);
+            // 浮水印透明度
+            under.setGState(gs1);
+            under.addImage(img);
+        }
+
+        stamp.close();
+        return tempPath.toFile();
+    }
